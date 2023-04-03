@@ -1,3 +1,5 @@
+use std::error::Error;
+
 const H: [u32; 8] = [
     0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19,
 ];
@@ -13,13 +15,16 @@ const K: [u32; 64] = [
     0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2,
 ];
 
+
+
+#[derive(PartialEq, Debug)]
 enum Mode {
     String,
     File,
 }
 
-
-struct Config {
+#[derive(PartialEq, Debug)]
+pub struct Config {
     mode: Mode,
     data: String,
 }
@@ -30,7 +35,7 @@ impl Config {
 
         let mode = match args.next() {
             Some(arg) => arg,
-            None => ()
+            None => return Err("Didn't get a value"),
         };
 
         let data = match args.next() {
@@ -38,9 +43,79 @@ impl Config {
             None => return Err("Didn't get a value"),
         };
 
-        Ok(Config {
-            mode,
-            data,
-        })
+        let mode: Mode = match mode.as_str() {
+            "string" => Mode::String,
+            "file" => Mode::File,
+            _ => return Err("Not a valid mode"),
+        };
+
+        Ok(Config { mode, data })
+    }
+}
+
+pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
+    if config.mode == Mode::File {}
+
+    if config.mode == Mode::String {}
+
+    Ok(())
+}
+
+pub struct Sha256 {
+    state: [u32; 8],
+    chunks:Vec<[u8; 64]>,
+    length: usize,
+}
+
+impl Default for Sha256 {
+    fn default() -> Self {
+        Self {
+            state: H,
+            chunks: vec!(),
+            length: 0,
+        }
+    }
+}
+impl Sha256 {
+
+    pub fn process_chunks(&mut self, mut data: Vec<u8>) {
+        self.length = data.len();
+        data.push(128);
+        let remainder = data.len() % 64;
+        if remainder > 56 {
+            for i in [remainder..120] {
+                data.push(0);
+            }
+        } else {
+            for i in [remainder..56] {
+                data.push(0);
+            }
+        }
+        for num in data {
+            println!("{:#10b}", num);
+        }
+    }
+}
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn config_builds() {
+        let config = Config::build(
+            vec![
+                "filler".to_string(),
+                "file".to_string(),
+                "hello world".to_string(),
+            ]
+            .into_iter(),
+        );
+        assert_eq!(
+            config,
+            Ok(Config {
+                mode: Mode::File,
+                data: "hello world".to_string()
+            })
+        );
     }
 }
